@@ -6,9 +6,10 @@
 # Outputs:
 # Notes: 
 #-----------------------------------------------------------------------------------------------------------------------------------#
-# # NOTE: requires the github version of rnpn; CRAN won't work
+dat.moth <- read.csv("../data_raw/Mother_Tree_Locations.csv")
+dat.moth$state <- substr(dat.moth$Unique.Code,1,2)
+dat.moth <- dat.moth[!is.na(dat.moth$Latitude),]
 
-#devtools::install_github("bluegreen-labs/phenor", force = TRUE)
 library(phenor)
 
 #Download all the bur oak budburst phenometrics
@@ -26,7 +27,7 @@ raw.npn$phenophase_description <- as.factor(raw.npn$phenophase_description)
 dat.npn <- raw.npn[!is.na(raw.npn$numdays_since_prior_no) & raw.npn$numdays_since_prior_no<=10,]
 
 #Only using the first budburst event for any individual and year. This is to remove repeat budburst observations
-npn.first <- aggregate(first_yes_doy ~ site_id + latitude + longitude + elevation_in_meters + species_id + species + individual_id + phenophase_id + phenophase_description + first_yes_year, data=dat.npn, FUN=min)
+npn.first <- aggregate(first_yes_doy ~ site_id + latitude + longitude + elevation_in_meters + species_id + species + individual_id + phenophase_id + phenophase_description + first_yes_year + state, data=dat.npn, FUN=min)
 
 # Looking at jsut sp
 # Filter by the summer equinox: June 21 (day 172)
@@ -56,23 +57,48 @@ summary(npn.filter)
 #This is where you would remove any flagged observations. Currently we don't have any flagged
 npn.filter <- npn.filter[npn.filter$flag.4sig == F, ]
 
-#Converting into phenoR's preferred format
-form.npn <- pr_fm_npn(npn.filter)
+proj4string <-CRS("+init=epsg:4326 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
 
-#Useful for identifying the parameters of different models
-path <- sprintf("%s/extdata/parameter_ranges.csv",path.package("phenor"))
-par_ranges <- read.table(path,
-                         header = TRUE,
-                         sep = ",")
+npn.zones <- data.frame()
+#pdf("../figures/Bur_Oak_Source_Area_NPN.pdf")
+for(ST in unique(all_counties$state)){
+    st.mcpdf <- full.mcpdf[full.mcpdf$id == ST,]
+    mcp.shp <- st_as_sf(st.mcpdf, coords = c("long", "lat"),crs =proj4string )
+    
+    npn.plot <- npn.filter[npn.filter$state == ST,]
+    npn.sf <- st_as_sf(npn.plot, coords = c("longitude", "latitude"),crs =proj4string )
+    
+    
+    #For some reason Oklahoma is weird and not calculating properly. This manual fix helps for visuals but is suspcious
+    if(ST == "OK"){
+        st.mcpdf[4,] <- c("a", -97.52167, 34.98056, 6, FALSE, 1, "OK.1",3.84365860650178e-06)
+        st.mcpdf$long <- as.numeric(st.mcpdf$long)
+        st.mcpdf$lat <- as.numeric(st.mcpdf$lat)
+        st.mcpdf$order <- as.integer(st.mcpdf$order)
+    }
+    
+    polygon_list = list(rbind(c(st.mcpdf[1,"long"] , st.mcpdf[1,"lat"]), c(st.mcpdf[2,"long"] , st.mcpdf[2,"lat"]), 
+                              c(st.mcpdf[3,"long"] , st.mcpdf[3,"lat"]), c(st.mcpdf[4,"long"] , st.mcpdf[4,"lat"]),
+                              c(st.mcpdf[5,"long"] , st.mcpdf[5,"lat"]), c(st.mcpdf[6,"long"] , st.mcpdf[6,"lat"]),
+                              c(st.mcpdf[7,"long"] , st.mcpdf[7,"lat"]), c(st.mcpdf[8,"long"] , st.mcpdf[8,"lat"])))
+    
+    sf.poly <- st_polygon(polygon_list)
+    
+    pbuf <-  st_buffer(sf.poly, 1)
+    
+    pbuf.sfc <- st_sfc(pbuf)
+    pbuf.sf <- st_sf(pbuf.sfc)
+    pbuf.sf <- st_set_crs(pbuf.sf, proj4string)
+    
+    npn.plot$close.check <- sapply(st_intersects(npn.sf,pbuf.sf), function(z) if (length(z)==0) FALSE else z[TRUE])
+    
+    npn.zones <- rbind(npn.zones, npn.plot)
+}
 
-#Way to automatically calculate ideal parameters.
-par.fit <- pr_fit_parameters(par = NULL, data = form.npn, cost = rmse, model = "TT", method = "GenSA", lower = c(1,-5,0), upper = c(365,10,2000), control = NULL)
+npn.within <- npn.zones[npn.zones$close.check == 1,]
 
-#Manually chosen parameters for testing
-par = as.vector(c(150, -5, 400))
+path.out <- "../data_processed/"
 
-#Converting into the "flat" format needed for modelling 
-dat.mod <- pr_flatten(form.list)
+if(!dir.exists(path.out)) dir.create(path.out, recursive=T, showWarnings = F)
 
-mod.out <- TT(par = par.fit$par, data= dat.mod)
-
+write.csv(npn.within, paste0(path.out, "Filtered_NPN.csv"), row.names = F)
