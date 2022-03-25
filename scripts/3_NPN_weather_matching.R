@@ -83,7 +83,7 @@ summary(dat.npnbud)
 summary(dat.npnbud[!dat.npnbud$flag.3sig,])
 
 # names(arb.burst)[names(arb.burst) %in% names(dat.npnbud)]
-cols.keep <- c("species", "site_id", "state", "latitude", "longitude", "individual_id", "date", "year", "yday", "GDD5.cum", "GTmean", "flag.3sig", "flag.4sig")
+cols.keep <- c("species", "site_id", "state", "latitude", "longitude", "individual_id", "date", "year", "yday", "GDD5.cum", "CDD5.cum", "GTmean", "flag.3sig", "flag.4sig")
 
 bud.all <- dat.npnbud[, cols.keep]
 
