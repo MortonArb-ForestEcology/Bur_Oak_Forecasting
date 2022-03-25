@@ -6,11 +6,14 @@
 # Outputs:
 # Notes: 
 #-----------------------------------------------------------------------------------------------------------------------------------#
+library(phenor)
+library(rgdal)
+library(ggplot2)
+library(sf)
+
 dat.moth <- read.csv("../data_raw/Mother_Tree_Locations.csv")
 dat.moth$state <- substr(dat.moth$Unique.Code,1,2)
 dat.moth <- dat.moth[!is.na(dat.moth$Latitude),]
-
-library(phenor)
 
 #Download all the bur oak budburst phenometrics
 #Including 2021 observations seems to break the formatting script. For now I'm just ignoring that year but we should come back
@@ -59,9 +62,24 @@ npn.filter <- npn.filter[npn.filter$flag.4sig == F, ]
 
 proj4string <-CRS("+init=epsg:4326 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
 
+#Creating the minimum convex polygon that captures all the points within it
+Moth.mcp <- dat.moth[,c("Longitude", "Latitude", "state")]
+
+coordinates(Moth.mcp) <- c("Longitude", "Latitude")
+
+proj4string(Moth.mcp) <- CRS( "+init=epsg:4326 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0" )
+
+full.mcp <- adehabitatHR::mcp(Moth.mcp)
+
+#Converting the mcp back into something ggplot can work with
+full.mcp@data$id <- rownames(full.mcp@data)# create a data.frame from our spatial object
+full.mcpdata <- fortify(full.mcp, region = "id")# merge the "fortified" data with the data from our spatial object
+full.mcpdf <- merge(full.mcpdata, full.mcp@data,
+                    by = "id")
+
 npn.zones <- data.frame()
 #pdf("../figures/Bur_Oak_Source_Area_NPN.pdf")
-for(ST in unique(all_counties$state)){
+for(ST in unique(full.mcpdf$id)){
     st.mcpdf <- full.mcpdf[full.mcpdf$id == ST,]
     mcp.shp <- st_as_sf(st.mcpdf, coords = c("long", "lat"),crs =proj4string )
     
@@ -84,7 +102,7 @@ for(ST in unique(all_counties$state)){
     
     sf.poly <- st_polygon(polygon_list)
     
-    pbuf <-  st_buffer(sf.poly, 1)
+    pbuf <-  st_buffer(sf.poly, 1.5)
     
     pbuf.sfc <- st_sfc(pbuf)
     pbuf.sf <- st_sf(pbuf.sfc)
@@ -95,10 +113,19 @@ for(ST in unique(all_counties$state)){
     npn.zones <- rbind(npn.zones, npn.plot)
 }
 
-npn.within <- npn.zones[npn.zones$close.check == 1,]
-
 path.out <- "../data_processed/"
 
 if(!dir.exists(path.out)) dir.create(path.out, recursive=T, showWarnings = F)
 
-write.csv(npn.within, paste0(path.out, "Filtered_NPN.csv"), row.names = F)
+write.csv(npn.zones, paste0(path.out, "Filtered_NPN.csv"), row.names = F)
+
+npn.filter <- npn.zones[npn.zones$close.check == 1,]
+
+State <- c("IL", "MN", "OK")
+n_sites <- c(length(unique(npn.filter[npn.filter$state == "IL", "site_id"])), length(unique(npn.filter[npn.filter$state == "MN", "site_id"])), length(unique(npn.filter[npn.filter$state == "OK", "site_id"])))
+n_trees <- c(length(unique(npn.filter[npn.filter$state == "IL", "individual_id"])), length(unique(npn.filter[npn.filter$state == "MN", "individual_id"])), length(unique(npn.filter[npn.filter$state == "OK", "individual_id"])))
+n_obs <- c(nrow(npn.filter[npn.filter$state == "IL", ]), nrow(npn.filter[npn.filter$state == "MN", ]), nrow(npn.filter[npn.filter$state == "OK", ]))
+
+sum.tab <- data.frame(State, n_sites, n_trees, n_obs) 
+
+write.csv(sum.tab, paste0(path.out, "Filtered_NPN_Sum_Stats.csv"), row.names = F)
