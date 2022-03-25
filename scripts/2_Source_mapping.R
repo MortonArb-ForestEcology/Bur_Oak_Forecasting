@@ -11,7 +11,11 @@ library(dplyr)
 library(sf)
 library(raster)
 
-npn.filter <- read.csv("../data/Filtered_NPN.csv")
+npn.filter <- read.csv("../data_processed/Filtered_NPN.csv")
+
+dat.moth <- read.csv("../data_raw/Mother_Tree_Locations.csv")
+dat.moth$state <- substr(dat.moth$Unique.Code,1,2)
+dat.moth <- dat.moth[!is.na(dat.moth$Latitude),]
 
 proj4string <-CRS("+init=epsg:4326 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
 
@@ -53,7 +57,55 @@ full.mcpdata <- fortify(full.mcp, region = "id")# merge the "fortified" data wit
 full.mcpdf <- merge(full.mcpdata, full.mcp@data,
                     by = "id")
 
-pdf("../figures/Bur_Oak_Source_Area_NPN.pdf")
+pdf("../figures/Bur_Oak_Source_Area_NPN_points.pdf")
+for(ST in unique(all_counties$state)){
+  dat.poly <- dat.moth[dat.moth$state == ST,]
+  Moth.tree <- st_as_sf(dat.poly, coords = c("Longitude", "Latitude"),crs =proj4string )
+  
+  counties <- all_counties[all_counties$state == ST,]
+  
+  st.mcpdf <- full.mcpdf[full.mcpdf$id == ST,]
+  mcp.shp <- st_as_sf(st.mcpdf, coords = c("long", "lat"),crs =proj4string )
+  
+  npn.plot <- npn.filter[npn.filter$state == ST,]
+  npn.sf <- st_as_sf(npn.plot, coords = c("longitude", "latitude"),crs =proj4string )
+  
+  
+  #For some reason Oklahoma is weird and not calculating properly. This manual fix helps for visuals but is suspcious
+  if(ST == "OK"){
+    st.mcpdf[4,] <- c("a", -97.52167, 34.98056, 6, FALSE, 1, "OK.1",3.84365860650178e-06)
+    st.mcpdf$long <- as.numeric(st.mcpdf$long)
+    st.mcpdf$lat <- as.numeric(st.mcpdf$lat)
+    st.mcpdf$order <- as.integer(st.mcpdf$order)
+  }
+  
+  plot_full <- ggplot()+
+    geom_polygon(data= counties, aes(long, lat, group=subregion), fill = "white", colour = "grey50")+
+    geom_sf(data = Moth.tree)+
+    #geom_sf(data = pbuf.sf ,fill = "blue", color = "blue", alpha = 0.5)+
+    geom_polygon(data = st.mcpdf, aes(x= long, y =lat, group = group),fill = "blue", color = "blue", alpha = 0.5)+
+    geom_sf(data = npn.sf, color = "magenta", shape = 18, size = 3)+
+    ggtitle(paste0("Bur Oak Mother Tree Locations (", ST, ")"))+
+    coord_sf()
+  print(plot_full)
+  
+  sub_counties <- counties[counties$long >= (min(dat.poly$Longitude)-1) & counties$long <= (max(dat.poly$Longitude)+1) & counties$lat >= (min(dat.poly$Latitude)-1) & counties$lat <= (max(dat.poly$Latitude)+1) ,  ]
+  plot_zoom <- ggplot()+
+    geom_polygon(data= sub_counties, aes(long, lat, group=subregion), fill = "white", colour = "grey50")+
+    geom_sf(data = Moth.tree)+
+    #geom_sf(data = pbuf.sf ,fill = "blue", color = "blue", alpha = 0.5)+
+    geom_sf(data = npn.sf, color = "magenta", shape = 18, size = 3)+
+    geom_polygon(data = st.mcpdf, aes(x= long, y =lat, group = group), fill = "blue", color = "blue", alpha = 0.5)+
+    ggtitle(paste0("Bur Oak Mother Tree Locations (Zoomed in ", ST, ")"))+
+    coord_sf()
+  print(plot_zoom)
+  
+}
+dev.off()
+
+
+
+pdf("../figures/Bur_Oak_Source_Area_Expanded_NPN_Range.pdf")
 for(ST in unique(all_counties$state)){
   dat.poly <- dat.moth[dat.moth$state == ST,]
   Moth.tree <- st_as_sf(dat.poly, coords = c("Longitude", "Latitude"),crs =proj4string )
@@ -82,7 +134,7 @@ for(ST in unique(all_counties$state)){
   
   sf.poly <- st_polygon(polygon_list)
   
-  pbuf <-  st_buffer(sf.poly, 1)
+  pbuf <-  st_buffer(sf.poly, 1.5)
 
   pbuf.sfc <- st_sfc(pbuf)
   pbuf.sf <- st_sf(pbuf.sfc)
@@ -91,23 +143,11 @@ for(ST in unique(all_counties$state)){
   plot_full <- ggplot()+
     geom_polygon(data= counties, aes(long, lat, group=subregion), fill = "white", colour = "grey50")+
     geom_sf(data = Moth.tree)+
-    #geom_sf(data = pbuf.sf ,fill = "blue", color = "blue", alpha = 0.5)+
-    geom_polygon(data = st.mcpdf, aes(x= long, y =lat, group = group),fill = "blue", color = "blue", alpha = 0.5)+
+    geom_sf(data = pbuf.sf ,fill = "blue", color = "blue", alpha = 0.5)+
     geom_sf(data = npn.sf, color = "magenta", shape = 18, size = 3)+
     ggtitle(paste0("Bur Oak Mother Tree Locations (", ST, ")"))+
     coord_sf()
   print(plot_full)
-  
-  counties <- counties[counties$lon >= (min(dat.poly$Longitude)-1) & counties$lon <= (max(dat.poly$Longitude)+1) & counties$lat >= (min(dat.poly$Latitude)-1) & counties$lat <= (max(dat.poly$Latitude)+1) ,  ]
-  plot_zoom <- ggplot()+
-    geom_polygon(data= counties, aes(long, lat, group=subregion), fill = "white", colour = "grey50")+
-    geom_sf(data = Moth.tree)+
-    #geom_sf(data = pbuf.sf ,fill = "blue", color = "blue", alpha = 0.5)+
-    geom_sf(data = npn.sf, color = "magenta", shape = 18, size = 3)+
-    geom_polygon(data = st.mcpdf, aes(x= long, y =lat, group = group), fill = "blue", color = "blue", alpha = 0.5)+
-    ggtitle(paste0("Bur Oak Mother Tree Locations (Zoomed in ", ST, ")"))+
-    coord_sf()
-  print(plot_zoom)
   
 }
 dev.off()
