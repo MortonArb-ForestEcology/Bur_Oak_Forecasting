@@ -78,12 +78,12 @@ lat.calc$site <- as.character(lat.calc$site)
 # lat.calc$date <- as.Date(lat.calc$date)
 
 # Merging met into the phenology data
-dat.npnbud <- merge(npn.bur, lat.calc[,c("year", "yday", "site", "GDD5.cum", "CDD5.cum","GTmean")], by.x = c("year", "yday", "site_id"), by.y = c("year", "yday", "site"))
+dat.npnbud <- merge(npn.bur, lat.calc[,c("year", "yday", "site", "TMEAN", "GDD5.cum", "GDD0.cum", "CDD5.cum","GTmean")], by.x = c("year", "yday", "site_id"), by.y = c("year", "yday", "site"))
 summary(dat.npnbud)
 summary(dat.npnbud[!dat.npnbud$flag.3sig,])
 
 # names(arb.burst)[names(arb.burst) %in% names(dat.npnbud)]
-cols.keep <- c("species", "site_id", "state", "latitude", "longitude", "individual_id", "date", "year", "yday", "GDD5.cum", "CDD5.cum", "GTmean", "flag.3sig", "flag.4sig")
+cols.keep <- c("species", "site_id", "state", "latitude", "longitude", "individual_id", "date", "year", "yday", "TMEAN" ,"GDD5.cum", "GDD0.cum", "CDD5.cum", "GTmean", "flag.3sig", "flag.4sig")
 
 bud.all <- dat.npnbud[, cols.keep]
 
