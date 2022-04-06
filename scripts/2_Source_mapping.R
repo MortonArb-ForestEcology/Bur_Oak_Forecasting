@@ -1,9 +1,12 @@
 #----------------------------------------------------------------------------------------------------------------------------------#
 # Script by: Lucien Fitzpatrick
 # Project: Bur Oak Forecasting (Quercus Quest)
-# Purpose: This script downloads the NPN data and cleans them
-# Inputs: 
-# Outputs:
+# Purpose: This script creates figures showing the mother tree source populations locations and NPN observations
+# Inputs: Filtered_NPN.csv which contains NPN bur oak observations with a column to flag if they are in the source area or not
+#         Mother Tree Locations csv which contains the location of all mother trees
+# Outputs: NPN_Bur_Oak_Observation_Locations.png which shows all bur oak observations in NPN
+#          Bur_Oak_Source_Area_NPN_points.pdf which shows the convex hull around mother trees and nearby NPN points
+#          Bur_Oak_Source_Area_Expanded_NPN_Range.pdf whcih shows the extended range of all the mother tree hulls
 # Notes: 
 #-----------------------------------------------------------------------------------------------------------------------------------#
 library(ggplot2)
@@ -11,14 +14,19 @@ library(dplyr)
 library(sf)
 library(raster)
 
+#Bur oak npn observations with the POTENTIAL to be filter. Not currently subset for figure creation
 npn.filter <- read.csv("../data_processed/Filtered_NPN.csv")
 
+#Loading in mother tree locations.
+#Currently this was manually added but can pivot to pulling from a google drive
 dat.moth <- read.csv("../data_raw/Mother_Tree_Locations.csv")
 dat.moth$state <- substr(dat.moth$Unique.Code,1,2)
 dat.moth <- dat.moth[!is.na(dat.moth$Latitude),]
 
+#Setting the coordinate reference system (CRS) for the maps we are going to make
 proj4string <-CRS("+init=epsg:4326 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
 
+#Downloading maps for all the states and general us map
 il_counties <- map_data("county", "illinois")
 il_counties$state <- "IL"
 
@@ -30,8 +38,10 @@ ok_counties$state <- "OK"
 
 us_map <- map_data("usa")
 
+#Converting the bur oak obs into a shapefile for graphing
 npn.sf <- st_as_sf(npn.filter, coords = c("longitude", "latitude"),crs =proj4string )
 
+#Figure of all bur oak observations
 png(width=9, height=6, units="in", res=600, filename= paste0("../figures/NPN_Bur_Oak_Observation_Locations.png"))
 ggplot()+
   geom_polygon(data= us_map, aes(long, lat, group=region), fill = "white", colour = "grey50")+
@@ -49,6 +59,8 @@ coordinates(Moth.mcp) <- c("Longitude", "Latitude")
 
 proj4string(Moth.mcp) <- CRS( "+init=epsg:4326 +proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0" )
 
+#There is likley a way to do this without this package but I couldn't figure it out
+#Maybe consult Shiven and Christy because of their PCA space hulls.
 full.mcp <- adehabitatHR::mcp(Moth.mcp)
 
 #Converting the mcp back into something ggplot can work with
@@ -57,6 +69,7 @@ full.mcpdata <- fortify(full.mcp, region = "id")# merge the "fortified" data wit
 full.mcpdf <- merge(full.mcpdata, full.mcp@data,
                     by = "id")
 
+#Pdf containing the mother tree hulls at their normal size
 pdf("../figures/Bur_Oak_Source_Area_NPN_points.pdf")
 for(ST in unique(all_counties$state)){
   dat.poly <- dat.moth[dat.moth$state == ST,]
@@ -104,17 +117,21 @@ for(ST in unique(all_counties$state)){
 dev.off()
 
 
-
+#Pdf containing the mother tree hulls at their expanded range
 pdf("../figures/Bur_Oak_Source_Area_Expanded_NPN_Range.pdf")
 for(ST in unique(all_counties$state)){
+  
+  #mother tree locations
   dat.poly <- dat.moth[dat.moth$state == ST,]
   Moth.tree <- st_as_sf(dat.poly, coords = c("Longitude", "Latitude"),crs =proj4string )
   
   counties <- all_counties[all_counties$state == ST,]
   
+  #mother tree hulls
   st.mcpdf <- full.mcpdf[full.mcpdf$id == ST,]
   mcp.shp <- st_as_sf(st.mcpdf, coords = c("long", "lat"),crs =proj4string )
   
+  #npn points
   npn.plot <- npn.filter[npn.filter$state == ST,]
   npn.sf <- st_as_sf(npn.plot, coords = c("longitude", "latitude"),crs =proj4string )
 
@@ -134,8 +151,10 @@ for(ST in unique(all_counties$state)){
   
   sf.poly <- st_polygon(polygon_list)
   
+  #Create a buffer around the point. 1.5 means 1.5 decimal degrees which is ~160km or ~100m
   pbuf <-  st_buffer(sf.poly, 1.5)
-
+  
+  #This is a series of conversions necessary to get the buffer to a format where we can check the contained npn points
   pbuf.sfc <- st_sfc(pbuf)
   pbuf.sf <- st_sf(pbuf.sfc)
   pbuf.sf <- st_set_crs(pbuf.sf, proj4string)
