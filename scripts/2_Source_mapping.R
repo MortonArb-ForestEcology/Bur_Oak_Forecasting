@@ -7,7 +7,7 @@
 # Outputs: NPN_Bur_Oak_Observation_Locations.png which shows all bur oak observations in NPN
 #          Bur_Oak_Source_Area_NPN_points.pdf which shows the convex hull around mother trees and nearby NPN points
 #          Bur_Oak_Source_Area_Expanded_NPN_Range.pdf whcih shows the extended range of all the mother tree hulls
-# Notes: 
+# Notes: This script only produces figures and isn't required in the overall workflow
 #-----------------------------------------------------------------------------------------------------------------------------------#
 library(ggplot2)
 library(dplyr)

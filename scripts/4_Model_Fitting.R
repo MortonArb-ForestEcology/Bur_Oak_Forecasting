@@ -4,7 +4,7 @@
 # Purpose: This script takes our filtered NPN data and fits our different model paramters.
 # Inputs: Full_Bur_Obs.csv which contains all npn observations nearby source populations matched with weather metrics
 #         Daymet_clean_data.csv which contains yearly weather data for each site of observation
-# Outputs:
+# Outputs: Parameter distributions for models
 # Notes: Current models are YDAY null model, GDD5, PTTGDD5, linear GTmean
 #-----------------------------------------------------------------------------------------------------------------------------------#
 library(rjags)
