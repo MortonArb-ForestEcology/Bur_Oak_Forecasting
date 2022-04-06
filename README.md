@@ -18,7 +18,9 @@ Purpose: This script downloads bur oak NPN data, cleans them, and subsets by pro
 Inputs: Mother Tree Locations csv which contains the location of all mother trees
 
 Outputs: Filtered_NPN.csv which contains NPN bur oak observations with a column to flag if they are in the source area or not
+
          Filtered_NPN_Sum_Stats.csv which is a summary table of the NPN bur oak observations
+         
          Bur_Oak_Source_Area_NPN.pdf which contains an image of all NPN bur oak observations and their proximity to source
          
 Notes: Creating the spatial hull for OK requires a manual adjustment. It currently works but is an oddity and could be an issue down the line
@@ -28,10 +30,13 @@ Notes: Creating the spatial hull for OK requires a manual adjustment. It current
 Purpose: This script creates figures showing the mother tree source populations locations and NPN observations
 
 Inputs: Filtered_NPN.csv which contains NPN bur oak observations with a column to flag if they are in the source area or not
+
          Mother Tree Locations csv which contains the location of all mother trees
          
 Outputs: NPN_Bur_Oak_Observation_Locations.png which shows all bur oak observations in NPN
+
           Bur_Oak_Source_Area_NPN_points.pdf which shows the convex hull around mother trees and nearby NPN points
+          
           Bur_Oak_Source_Area_Expanded_NPN_Range.pdf whcih shows the extended range of all the mother tree hulls
           
 Notes: This script only produces figures and isn't required in the overall workflow
@@ -43,6 +48,7 @@ Purpose: This script takes our filter NPN data and matches them with weather met
 Inputs: Filtered_NPN.csv which contains NPN bur oak observations with a column to flag if they are in the source area or not
 
 Outputs: Full_Bur_Obs.csv which contains all npn observations nearby source populations matched with weather metrics
+
          Daymet_clean_data.csv which contains yearly weather data for each site of observation
          
 ## 4_Model_Fitting.R
@@ -50,6 +56,7 @@ Outputs: Full_Bur_Obs.csv which contains all npn observations nearby source popu
 Purpose: This script takes our filtered NPN data and fits our different model paramters.
 
 Inputs: Full_Bur_Obs.csv which contains all npn observations nearby source populations matched with weather metrics
+
          Daymet_clean_data.csv which contains yearly weather data for each site of observation
          
 Outputs: Parameter distributions for models
@@ -71,6 +78,7 @@ Notes: No longer used now that shiny app is working
 Purpose: This script takes our filtered NPN data and tries to fit more complex models
 
 Inputs: Full_Bur_Obs.csv which contains all npn observations nearby source populations matched with weather metrics
+
         Daymet_clean_data.csv which contains yearly weather data for each site of observation
         
 Outputs: Parameter distributions for models
