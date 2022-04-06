@@ -8,6 +8,7 @@
 #-----------------------------------------------------------------------------------------------------------------------------------#
 library(ggplot2)
 library(cowplot)
+library(tidyr)
 
 #Reading in budburst model
 path.mod <- "../data_processed/model_output/"
@@ -19,61 +20,32 @@ b.model <- gather(wide.mod, state, THRESH, IL:OK, factor_key=TRUE)
 convg.df <- read.csv(file.path(path.mod, paste0("Quercus_Quest_convergence.csv")))
 good.state <- convg.df[convg.df$burst.converge < 1.05, "state"]
 
+safe_colorblind_palette <- c("#88CCEE",  "#DDCC77", "#CC6677", "#117733", "#332288", "#AA4499", 
+                             "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+
+b.model$state <- factor(b.model$state, levels = c("MN", "IL", "OK"))
+
 #set.seed(903)
 #Taking a  random sample of 1000 pulls
-#b.model <- do.call(rbind,lapply(split(Budburst_Model, Budburst_Model$state),function(x) x[sample(nrow(x), 1000), ]))
+#b.model <- do.call(rbind,lapply(split(b.model, b.model$state),function(x) x[sample(nrow(x), 1000), ]))
 
 #rownames(b.model) <- NULL
 
-pdf("../figures/TT_Bur_Oak_GDD5_dist.pdf")
-for(ST in unique(b.model$state)){
-  
-  quant <- quantile(b.model[b.model$state == ST,"THRESH"], c(0.025, 0.975))
-  
-  plot.gdd <- ggplot() + 
-    geom_density(data=b.model[b.model$state == ST,], aes(x=THRESH), fill = "darkgreen", adjust=3.5, alpha=0.5) +
-    geom_vline(aes(xintercept=quant[1]), linetype="dashed") +
-    geom_vline(aes(xintercept=quant[2]), linetype="dashed") +
-    scale_x_continuous(name="GDD5.cum", expand=c(0,0))  +
-    scale_y_continuous(name="Probability of Bud Burst" ,expand=c(0,0)) +
-    theme_bw() +
-    guides(fill="none") +
-    ggtitle(paste0(ST, ": Budburst DOY 95% C.I."))+
-    theme(legend.position = c(0.5, 0.2),
-          legend.title=element_blank(),
-          legend.background = element_blank(),
-          panel.grid.minor.x = element_blank(),
-          panel.grid.minor.y = element_blank())
-  
-  title <- ggdraw() + 
-    draw_label(
-      paste0(ST, " sourced trees predicted budburst timing at TMA 95% CI GDD5.cum range ", round(quant[1]),
-             " to ", round(quant[2])),
-      fontface = 'bold',
-      x = 0,
-      hjust = 0, 
-      size = 10,
-    ) +
-    theme(
-      # add margin on the left of the drawing canvas,
-      # so title is aligned with left edge of first plot
-      plot.margin = margin(0, 0, 0, 7)
-    )
-  final.plot <- plot_grid(
-    title, plot.gdd,
-    ncol = 1,
-    # rel_heights values control vertical title margins
-    rel_heights = c(0.1, 1)
-  )
-  print(final.plot)
-}
-dev.off()    
-
+png(width=9, height=6, units="in", res=600, filename= paste0("../figures/TT_Bur_Oak_GDD5_dist.png"))
+ggplot() + 
+  geom_density(data=b.model, aes(x=THRESH, fill = state, color = state), adjust=3.5, alpha=0.5) +
+  scale_x_continuous(name="GDD5.cum", expand=c(0,0))  +
+  scale_y_continuous(name="Probability of Bud Burst" ,expand=c(0,0)) +
+  scale_color_manual(values = safe_colorblind_palette)+
+  scale_fill_manual(values = safe_colorblind_palette)+
+  theme_bw() +
+  ggtitle(paste0("Budburst GDD5 Distribution"))
+dev.off()
 
 dir.met <- c("../../Phenology_Forecasting/scripts/Morton_Bloom_Forecast/data_raw/meteorology/")
 
 #Reading in our latest forecast
-dat.forecast <- read.csv(file.path(dir.met, paste0("Mortonarb_daily_FORECAST-READY-LONGRANGE_2022-03-18.csv")))
+dat.forecast <- read.csv(file.path(dir.met, paste0("Mortonarb_daily_FORECAST-READY-LONGRANGE_2022-03-28.csv")))
 vars.agg <- c("TMEAN", "GDD0.cum", "GDD5.cum", "CDD0.cum", "CDD2.cum")
 ens.forecast <- list()
 
@@ -113,6 +85,7 @@ for(ST in unique(b.model$state)){
   #Pulling out the gdd5.cum vlaues
   
   thresh <- b.model[b.model$state == ST, "THRESH"]
+  thresh <- bur.mod$THRESH
   
   pred.array <- array(dim=c(length(thresh), length(unique(dat.forecast$ENS))))
   #We want to pull from the Budburst_Model table for out GDD predictions
@@ -152,8 +125,11 @@ for(ST in unique(b.model$state)){
 }
 
 path.burst <- "../data_processed/"
-write.csv(pred.st, file.path(path.burst, paste0("Prop_Oak_Budburst_Prediction.csv")), row.names = F)
-write.csv(lim.comb, file.path(path.burst, paste0("Oak_Prediciton_Summary.csv")), row.names = F)
+write.csv(pred.st, file.path(path.burst, paste0("GDD5_Prop_Oak_Budburst_Prediction.csv")), row.names = F)
+write.csv(lim.comb, file.path(path.burst, paste0("GDD5_Oak_Prediciton_Summary.csv")), row.names = F)
+
+#pred.st <- read.csv(file.path(path.burst, paste0("GDD5_Prop_Oak_Budburst_Prediction.csv")))
+#lim.comb <- read.csv(file.path(path.burst, paste0("GDD5_Oak_Prediciton_Summary.csv")))
 
 # Creating some day and axis labels
 day.labels <- data.frame(Date=seq.Date(as.Date("2021-01-01"), as.Date("2021-12-31"), by="month"))
@@ -161,52 +137,20 @@ day.labels$yday <- lubridate::yday(day.labels$Date)
 day.labels$Text <- paste(lubridate::month(day.labels$Date, label=T), lubridate::day(day.labels$Date))
 summary(day.labels)
 
-calc.bud <- function(dat, VAR, THRESH){
-  min(dat[which(dat[,VAR] >= THRESH),"YDAY"])
-}
-
 day.labels2 <- data.frame(Date=seq.Date(as.Date("2021-01-03"), as.Date("2021-7-01"), by="day"))
 day.labels2$yday <- lubridate::yday(day.labels2$Date)
 day.labels2$Text <- paste(lubridate::month(day.labels2$Date, label=T), lubridate::day(day.labels2$Date))
 summary(day.labels2)
 
-pdf("../figures/TT_Bur_Oak_Yday_dist.pdf")
-for(ST in unique(pred.st$state)){
-  plot.yday <- ggplot() + 
-    geom_density(data=pred.st[pred.st$state == ST,], aes(x=yday), fill = "darkgreen", adjust=3.5, alpha=0.5) +
-    geom_vline(data=lim.comb[lim.comb$state == ST,], aes(xintercept=lb), linetype="dashed") +
-    geom_vline(data=lim.comb[lim.comb$state == ST,], aes(xintercept=ub), linetype="dashed") +
-    scale_x_continuous(name="Day of Year", expand=c(0,0), breaks=day.labels2$yday[seq(8, nrow(day.labels2), by=7)], labels=day.labels2$Text[seq(8, nrow(day.labels2), by=7)])  +
-    scale_y_continuous(name="Probability of Bud Burst" ,expand=c(0,0), breaks=day.labels2$yday[seq(8, nrow(day.labels2), by=7)], labels=day.labels2$Text[seq(8, nrow(day.labels2), by=7)]) +
-    theme_bw() +
-    guides(fill="none") +
-    ggtitle(paste0(ST, ": Budburst DOY 95% C.I."))+
-    theme(legend.position = c(0.5, 0.2),
-          legend.title=element_blank(),
-          legend.background = element_blank(),
-          panel.grid.minor.x = element_blank(),
-          panel.grid.minor.y = element_blank())
+pred.st$state <- factor(pred.st$state, levels = c("MN", "IL", "OK"))
   
-  title <- ggdraw() + 
-    draw_label(
-      paste0(ST, " sourced trees predicted budburst timing at TMA 95% CI date range ", as.Date((lim.comb[lim.comb$state == ST,"lb"]-1), origin = paste0(lubridate::year(Sys.Date()),"-01-01")) ,
-             " to ", as.Date((lim.comb[lim.comb$state == ST,"ub"]-1), origin = paste0(lubridate::year(Sys.Date()),"-01-01"))),
-      fontface = 'bold',
-      x = 0,
-      hjust = 0, 
-      size = 10,
-    ) +
-    theme(
-      # add margin on the left of the drawing canvas,
-      # so title is aligned with left edge of first plot
-      plot.margin = margin(0, 0, 0, 7)
-    )
-  final.plot <- plot_grid(
-    title, plot.yday,
-    ncol = 1,
-    # rel_heights values control vertical title margins
-    rel_heights = c(0.1, 1)
-  )
-  print(final.plot)
-}
-dev.off()     
+png(width=9, height=6, units="in", res=600, filename= paste0("../figures/TT_Bur_Oak_YDAY_dist.png"))
+ggplot() + 
+  geom_density(data=pred.st, aes(x=yday, color = state, fill = state), adjust=3.5, alpha=0.5) +
+  scale_x_continuous(name="Day of Year", expand=c(0,0), breaks=day.labels2$yday[seq(8, nrow(day.labels2), by=7)], labels=day.labels2$Text[seq(8, nrow(day.labels2), by=7)])  +
+  scale_y_continuous(name="Probability of Bud Burst" ,expand=c(0,0), breaks=day.labels2$yday[seq(8, nrow(day.labels2), by=7)], labels=day.labels2$Text[seq(8, nrow(day.labels2), by=7)]) +
+  scale_color_manual(values = safe_colorblind_palette)+
+  scale_fill_manual(values = safe_colorblind_palette)+
+  theme_bw() +
+  ggtitle(paste0("Budburst DOY Distribution"))
+dev.off()
