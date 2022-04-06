@@ -16,10 +16,20 @@ library(rnpn)
 list <- npn_species()
 list <- list[list$genus == "Quercus",]
 
+#path.goog <- "G:/My Drive/Phenology - NPN/"
+path.goog <- "Volumes/My Drive/Phenology - NPN/"
+
 
 #Loading in mother tree locations.
 #Currently this was manually added but can pivot to pulling from a google drive
-dat.moth <- read.csv("../data_raw/Mother_Tree_Locations.csv")
+#dat.moth <- read.csv("../data_raw/Mother_Tree_Locations.csv")
+dat.moth <- read.csv(paste0(path.goog, "Mother_Tree_Locations.csv"))
+
+path.raw <- "../data_raw/"
+if(!dir.exists(path.raw)) dir.create(path.raw, recursive=T, showWarnings = F)
+write.csv(dat.moth, "../data_raw/Mother_Tree_Locations.csv", row.names = F)
+
+
 dat.moth$state <- substr(dat.moth$Unique.Code,1,2)
 dat.moth <- dat.moth[!is.na(dat.moth$Latitude),]
 
