@@ -1,12 +1,16 @@
 #----------------------------------------------------------------------------------------------------------------------------------#
 # Script by: Lucien Fitzpatrick
 # Project: Bur Oak Forecasting (Quercus Quest)
-# Purpose: This script downloads the NPN data and cleans them
-# Inputs: 
-# Outputs:
+# Purpose: This script takes our filter NPN data and matches them with weather metrics
+# Inputs: Filtered_NPN.csv which contains NPN bur oak observations with a column to flag if they are in the source area or not
+# Outputs: Full_Bur_Obs.csv which contains all npn observations nearby source populations matched with weather metrics
+#          Daymet_clean_data.csv which contains yearly weather data for each site of observation
 # Notes: 
 #-----------------------------------------------------------------------------------------------------------------------------------#
-npn.zones <- read.csv("../data_processed/Filtered_NPN.csv")
+#Reading in all npn data
+npn.bur <- read.csv("../data_processed/Test_Filtered_NPN.csv")
+
+#Filtering out the npn data that isn't close enough
 npn.bur <- npn.zones[npn.zones$close.check == 1,]
 
 path.daymet <- "../data_raw/DAYMET"
@@ -60,8 +64,9 @@ list.met<- lapply(list.met, weather_calc)
 
 lat.calc <- dplyr::bind_rows(list.met)
 summary(lat.calc)
+lat.calc$DAYLEN <- lat.calc$dayl..s./86400
 
-write.csv(lat.calc, "../data_processed/Daymet_clean_data.csv", row.names=F)
+write.csv(lat.calc, "../data_processed/Test_Daymet_clean_data.csv", row.names=F)
 
 
 library(dplyr)
@@ -76,16 +81,17 @@ npn.bur$species <- as.character(npn.bur$species)
 lat.calc$Freeze <- ifelse(lat.calc$tmin..deg.c.<0, 1, 0)
 lat.calc$site <- as.character(lat.calc$site)
 # lat.calc$date <- as.Date(lat.calc$date)
+lat.calc$DAYLEN <- lat.calc$dayl..s./86400
 
 # Merging met into the phenology data
-dat.npnbud <- merge(npn.bur, lat.calc[,c("year", "yday", "site", "TMEAN", "GDD5.cum", "GDD0.cum", "CDD5.cum","GTmean")], by.x = c("year", "yday", "site_id"), by.y = c("year", "yday", "site"))
+dat.npnbud <- merge(npn.bur, lat.calc[,c("year", "yday", "site", "TMEAN", "GDD5.cum", "GDD0.cum", "CDD0.cum","GTmean", "PTTGDD.cum", "DAYLEN")], by.x = c("year", "yday", "site_id"), by.y = c("year", "yday", "site"))
 summary(dat.npnbud)
 summary(dat.npnbud[!dat.npnbud$flag.3sig,])
 
 # names(arb.burst)[names(arb.burst) %in% names(dat.npnbud)]
-cols.keep <- c("species", "site_id", "state", "latitude", "longitude", "individual_id", "date", "year", "yday", "TMEAN" ,"GDD5.cum", "GDD0.cum", "CDD5.cum", "GTmean", "flag.3sig", "flag.4sig")
+cols.keep <- c("species", "site_id", "state", "latitude", "longitude", "individual_id", "date", "year", "yday", "TMEAN" ,"GDD5.cum", "GDD0.cum", "CDD0.cum","PTTGDD.cum", "GTmean","DAYLEN", "flag.3sig", "flag.4sig")
 
 bud.all <- dat.npnbud[, cols.keep]
 
-write.csv(bud.all, "../data_processed/Full_Bur_Obs.csv", row.names = F)
+write.csv(bud.all, "../data_processed/Test_Full_Bur_Obs.csv", row.names = F)
 
