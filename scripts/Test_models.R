@@ -1,3 +1,12 @@
+#----------------------------------------------------------------------------------------------------------------------------------#
+# Script by: Lucien Fitzpatrick
+# Project: Bur Oak Forecasting (Quercus Quest)
+# Purpose: This script takes our filtered NPN data and tries to fit more complex models
+# Inputs: Full_Bur_Obs.csv which contains all npn observations nearby source populations matched with weather metrics
+#         Daymet_clean_data.csv which contains yearly weather data for each site of observation
+# Outputs: Parameter distributions for models
+# Notes: 
+#-----------------------------------------------------------------------------------------------------------------------------------#
 
 #---------------------------------------------------#
 #Next we have the CDD0 thermal time model.
