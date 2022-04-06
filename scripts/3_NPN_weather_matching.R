@@ -8,7 +8,7 @@
 # Notes: 
 #-----------------------------------------------------------------------------------------------------------------------------------#
 #Reading in all npn data
-npn.bur <- read.csv("../data_processed/Test_Filtered_NPN.csv")
+npn.zones <- read.csv("../data_processed/Filtered_NPN.csv")
 
 #Filtering out the npn data that isn't close enough
 npn.bur <- npn.zones[npn.zones$close.check == 1,]
@@ -66,7 +66,7 @@ lat.calc <- dplyr::bind_rows(list.met)
 summary(lat.calc)
 lat.calc$DAYLEN <- lat.calc$dayl..s./86400
 
-write.csv(lat.calc, "../data_processed/Test_Daymet_clean_data.csv", row.names=F)
+write.csv(lat.calc, "../data_processed/Daymet_clean_data.csv", row.names=F)
 
 
 library(dplyr)
@@ -93,5 +93,5 @@ cols.keep <- c("species", "site_id", "state", "latitude", "longitude", "individu
 
 bud.all <- dat.npnbud[, cols.keep]
 
-write.csv(bud.all, "../data_processed/Test_Full_Bur_Obs.csv", row.names = F)
+write.csv(bud.all, "../data_processed/Full_Bur_Obs.csv", row.names = F)
 
