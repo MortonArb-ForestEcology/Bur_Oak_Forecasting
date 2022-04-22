@@ -102,6 +102,10 @@ dat.forecast <- read.csv(file.path(dir.met, paste0("Mortonarb_daily_FORECAST-REA
 vars.agg <- c("TMEAN", "GDD0.cum", "GDD5.cum", "CDD0.cum", "CDD2.cum", "PTTGDD5.cum")
 ens.forecast <- list()
 
+ens.good <- unique(dat.forecast[!is.na(dat.forecast$TMAX) & dat.forecast$DATE == "2022-04-20", "ENS"])
+
+dat.forecast <- dat.forecast[dat.forecast$ENS %in% ens.good,]
+
 #Populating our uncertainty
 for(VAR in vars.agg){
   ens.forecast[[VAR]] <- aggregate(dat.forecast[,VAR],
