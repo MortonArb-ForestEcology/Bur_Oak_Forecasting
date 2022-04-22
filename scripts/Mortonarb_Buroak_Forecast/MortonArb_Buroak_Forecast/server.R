@@ -151,7 +151,7 @@ function(input, output) {
           #for(YR in unique(dat.b[dat.b$Species == SP, "Year"])){
           #  prev.date[prev.date$Year == YR, "Mean.Date"] <- mean.Date(as.Date(format(as.Date(dat.b[dat.b$Species == SP & dat.b$Year == YR,"Date"]),"%m-%d"), format = "%m-%d"))
           #}
-            dat.budsum <- read.csv(file.path(path.in, "budburst", paste0(MOD,"_Oak_Prediciton_Summary_", Sys.Date() ,".csv")))
+            dat.budsum <- read.csv(file.path(path.in, "budburst", paste0(MOD,"_Oak_Prediciton_Summary_", input$`Forecast date` ,".csv")))
           
             dat.newdist <- read.csv(file.path(path.in, "budburst", paste0(MOD,"_Prop_Oak_Budburst_Prediction_", input$`Forecast date` ,".csv")))
             dat.newdist$state <- factor(dat.newdist$state, levels = c("MN", "IL", "OK"))
