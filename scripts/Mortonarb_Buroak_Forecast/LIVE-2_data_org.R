@@ -19,13 +19,13 @@ path.weath <- "data_raw/meteorology/"
 path.ghcn=c("data_raw/meteorology/GHCN_extracted/")
 dir.met <- "data_raw/meteorology"
 
-path.temp <- "MortonArb_Buroak_Forecast/data/"
+path.temp <- "MortonArb_BurOak_Forecast/data/"
 if(!dir.exists(path.temp)) dir.create(path.temp, recursive=T, showWarnings = F)
 
-path.met <- "MortonArb_Buroak_Forecast/data/meteorology"
+path.met <- "MortonArb_BurOak_Forecast/data/meteorology"
 if(!dir.exists(path.met)) dir.create(path.met, recursive=T, showWarnings = F)
 
-path.burst <- file.path("MortonArb_Buroak_Forecast/data/budburst")
+path.burst <- file.path("MortonArb_BurOak_Forecast/data/budburst")
 if(!dir.exists(path.burst)) dir.create(path.burst, recursive=T, showWarnings = F)
 
 set.seed(903)
