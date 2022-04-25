@@ -17,7 +17,7 @@ list <- npn_species()
 list <- list[list$genus == "Quercus",]
 
 #path.goog <- "G:/My Drive/Phenology - NPN/"
-path.goog <- "Volumes/My Drive/Phenology - NPN/"
+path.goog <- "/Volumes/GoogleDrive/My Drive/Phenology - Oaks - Hipp 2022/Phenology - NPN/"
 
 
 #Loading in mother tree locations.

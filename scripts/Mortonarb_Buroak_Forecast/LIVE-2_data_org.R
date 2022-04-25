@@ -99,10 +99,11 @@ dat.ghcn$DATE <- as.Date(dat.ghcn$DATE)
 
 #Reading in our latest forecast
 dat.forecast <- read.csv(file.path(dir.met, paste0("Mortonarb_daily_FORECAST-READY-LONGRANGE_", Sys.Date(),".csv")))
+# dat.forecast$TMEAN <- (dat.forecast$TMAX)
 vars.agg <- c("TMEAN", "GDD0.cum", "GDD5.cum", "CDD0.cum", "CDD2.cum", "PTTGDD5.cum")
 ens.forecast <- list()
 
-ens.good <- unique(dat.forecast[!is.na(dat.forecast$TMAX) & dat.forecast$DATE == "2022-04-20", "ENS"])
+ens.good <- unique(dat.forecast[!is.na(dat.forecast$TMAX) & dat.forecast$DATE == Sys.Date(), "ENS"])
 
 dat.forecast <- dat.forecast[dat.forecast$ENS %in% ens.good,]
 
