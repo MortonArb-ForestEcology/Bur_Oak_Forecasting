@@ -27,6 +27,7 @@ path.in <- "data/"
 dat.ghcn <- read.csv(file.path(path.in , "Historical_Weather.csv"))
 dat.b <- read.csv(file.path(path.in , "Full_Bur_Obs.csv"))
 comb.model <- read.csv(file.path(path.in, "budburst","Model_params_distribution.csv"))
+comb.model$state <- factor(comb.model$state, levels = c("MN", "IL", "OK"))
 
 # -------------------------------------
 # Creating our budburst visualizations
